@@ -15,73 +15,13 @@ using namespace std;
 int _tmain(int argc, _TCHAR* argv[])
 {
 
-	int frame_count = 0;							//Count the number of frames being processed
-	int saved_image_count = 0;
-	String names[10] = { "input1.jpg", "input2.jpg", "input3.jpg", "input4.jpg", "input5.jpg",
-		"input6.jpg", "input7.jpg", "input8.jpg", "input9.jpg", "input10.jpg"
-	};
-
-	//Take in video input
+	//Initialize some basic frame counting variables
 	
-	/*VideoCapture cap(0); // open the default camera
-	if (!cap.isOpened())  // check if we succeeded
-		return -1;
+	int frame_count = 0;
+	int saved_image_count = 0;
 
 
-	cvNamedWindow("Video Input", CV_WINDOW_AUTOSIZE);				//Window to display input
-	Mat previousframe;
-	Mat frame;
-	for (;;)
-	{
-
-		cap >> frame;												//Read in frame from video input
-
-		if (frame_count == 0) {
-			previousframe = frame.clone();
-		}
-		else {
-			frame_count++;												//Increment frame_count by 1;
-			cout << frame_count << endl;
-			imshow("Video Input", frame);								//Output Image to window!
-
-			if (waitKey(30) >= 0) {										//Wait 30ms for input to exit
-				break;
-			}
-		}
-	}
-
-
-	imshow("Video Input", previousframe);*/
-
-
-	cvWaitKey(0);
-
-	/*	int frame_count = 0;
-	VideoCapture cap(0); // open the default camera
-	if(!cap.isOpened())  // check if we succeeded
-	return -1;
-
-
-	cvNamedWindow("AA",CV_WINDOW_AUTOSIZE);
-	Mat edges;
-	for(;;)
-	{
-	Mat frame;
-	cap >> frame; // get a new frame from camera
-	cvtColor(frame, edges, COLOR_BGR2GRAY);
-	GaussianBlur(edges, edges, Size(7,7), 1.5, 1.5);
-	Canny(edges, edges, 0, 30, 3);
-	//IplImage* image = cvCloneImage(&(IplImage)frame);
-	//cvShowImage("AA", image);
-	imshow("edges", edges);
-	if (waitKey(30) >= 0) {
-	break;
-	}
-	}
-	// the camera will be deinitialized automatically in VideoCapture destructor
-	return 0;
-	*/
-	//Load Images saved in folder
+	//both set of 5 frames contains a collection of images of me swiping my hand down.
 
 	IplImage *imageA = cvLoadImage("imageG1.jpg");
 	IplImage *imageB = cvLoadImage("imageG2.jpg");
@@ -94,6 +34,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	IplImage *imageC2 = cvLoadImage("imageG8.jpg");
 	IplImage *imageD2 = cvLoadImage("imageG9.jpg");
 	IplImage *imageE2 = cvLoadImage("imageG10.jpg");
+	
+	
 
 	//Some constants, names of output images, framecount, frame size, frame depth
 
@@ -104,8 +46,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	const int FRAME_DEPTH = imageA->depth;
 	int add_count = 0;
 
-	//Store frames into an array
 
+	//Store the loaded images into two array of IplImages
 	IplImage frames[FRAME_COUNT];
 	frames[0] = *imageA;
 	frames[1] = *imageB;
@@ -120,12 +62,23 @@ int _tmain(int argc, _TCHAR* argv[])
 	frames2[3] = *imageD2;
 	frames2[4] = *imageE2;
 
-	//Output Windows
+	
+	
+	//Instantiate the Output Window
 	cvNamedWindow("Output", CV_WINDOW_AUTOSIZE);
 
 
-	//COMPUTE THE AVERAGE IMAGE OVER MULTIPLE FRAMES
-	//---------------------------------------------------------------------------------
+	
+/*
+The following code is currently for testing purposes; It is creating an Average over multiple frames. To do this, an IplImage named Divider is created
+We Set the dividers 3 channels equal to 2 respectively. Using the cvDiv function, which divides the pixels from one image to another, we accumulate the image
+into an IplImage "AvgImg", which was initialized to zero using cvZero
+*/
+
+//---------------------------------------------------------------------------------
+
+
+
 
 	IplImage *AvgImg = cvCreateImage(cvSize(imageA->width, imageA->height), imageA->depth, imageA->nChannels);
 
@@ -143,108 +96,145 @@ int _tmain(int argc, _TCHAR* argv[])
 		add_count++;
 	}
 
-	//---------------------------------------------------------------------------------
-	//Motion Modelling Algorithm
+	
+	
+	
+//---------------------------------------------------------------------------------
+	
+/*
+The following code repeats twice. This is not intentional, but only for testing purposes to have two sets of data to compare to. This algorithm essentially maps
+difference of frames and store what the computer considers as "motion" as black and static as white. Afterwards, the code will compile all the frame differences and
+put them together into one image. This means that any pixel that was regarded as "motion" in any of the frame differences will be considered black. However, for testing purposes,
+each image of a frame difference between adjacent images have been saved to the project as well as the accumulated frame difference image
+*/
 
+
+	//Instantiate an Output Image, a Image that has the lower threshold for pixels and an Image that has the higher threshold for pixels
 	IplImage *OutputA = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 3);
 	IplImage *Low = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 3);
 	IplImage *High = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 3);
 
+	
+	
+	//Instantiate 3 channels for each of the above
 	IplImage *LowChannels[3];
 	IplImage *HighChannels[3];
 	IplImage *OutputChannels[3];
 
+	
+	
+	//Loop through and intialize the channels; Note that they are initialized to ONE channel in the last parameter
 	for (int i = 0; i < 3; i++) {
 		LowChannels[i] = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 		HighChannels[i] = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 		OutputChannels[i] = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 	}
+	
 
 
-
+	//Two Images that will be used to accumulate the motion
 	IplImage *Mask = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 	IplImage *MaskTwo = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 
+	
+	
+	//The final product image, that is, this image holds the accumulation of all frame differences
 	IplImage *Sum = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 
-	//Set values of Sum, Low and High
+	
+	
+	//Set values of Sum, Low and High. Sum is set to 0, Low is set to an arbitrarily value of 20 as the lower threshold value
 	cvZero(Sum);
 	cvSet(Low, cvScalar(20, 20, 20), NULL);
 	cvSet(High, cvScalar(255, 255, 255), NULL);
 
+	
+	
 
 	for (int i = 1; i < FRAME_COUNT; i++) {
-		cvZero(Mask);													//Set both Mask and MaskTwo to ZERO
+		
+		cvZero(Mask);																					//Set both Mask and MaskTwo to ZERO
 		cvZero(MaskTwo);
-		cvAbsDiff(&frames[0], &frames[i], OutputA);						//Frame difference the first and ith frame
-		cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_OPEN, 2);			//Apply MorphologyEX to remove noise from image
+		cvAbsDiff(&frames[0], &frames[i], OutputA);														//Frame difference the first and ith frame
+		cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_OPEN, 2);											//Apply morphology algorithm that will remove general noise from image
 		cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_CLOSE, 2);
 
-		cvSplit(OutputA, OutputChannels[0], OutputChannels[1], OutputChannels[2], 0);					//Split Output, High and Low into three separate channels
-		cvSplit(High, HighChannels[0], HighChannels[1], HighChannels[2], 0);
-		cvSplit(Low, LowChannels[0], LowChannels[1], LowChannels[2], 0);
+		cvSplit(OutputA, OutputChannels[0], OutputChannels[1], OutputChannels[2], 0);					//Split Output to three channels
+		cvSplit(High, HighChannels[0], HighChannels[1], HighChannels[2], 0);							//Split High to three channels
+		cvSplit(Low, LowChannels[0], LowChannels[1], LowChannels[2], 0);								//Split Low to three channels
 
-		cvInRange(OutputChannels[0], LowChannels[0], HighChannels[0], Mask);							//Mark sufficient changes in pixel values
-		cvOr(Mask, MaskTwo, Mask);										//CvOr to store into Mask
+		cvInRange(OutputChannels[0], LowChannels[0], HighChannels[0], Mask);							//Mark pixels in range and store them into Mask 
+		cvOr(Mask, MaskTwo, Mask);																		//Or operator Mask, which was used last line, and MaskTwo which is zero right now
 
-		cvInRange(OutputChannels[1], LowChannels[1], HighChannels[2], MaskTwo);
-		cvOr(Mask, MaskTwo, Mask);
+		cvInRange(OutputChannels[1], LowChannels[1], HighChannels[2], MaskTwo);							//Mark pixels in range and store them into MaskTwo
+		cvOr(Mask, MaskTwo, Mask);																		//Or operator Mask and MaskTwo again to overlay the results onto Mask
 
-		cvInRange(OutputChannels[2], LowChannels[2], HighChannels[2], OutputChannels[2]);
-		cvOr(Mask, MaskTwo, Mask);
+		cvInRange(OutputChannels[2], LowChannels[2], HighChannels[2], MaskTwo);							//Mark pixels in range store them into maskTwo
+		cvOr(Mask, MaskTwo, Mask);																		//Or operator Mask and MaskTwo again to overlap results onto Mask
 
-		cvOr(Sum, Mask, Sum);											//CvOr the result of Mask into Sum, which accumulates all i masks
+		cvOr(Sum, Mask, Sum);																			//CvOr the result of Mask into Sum, which accumulates all i masks
 
-		cvSaveImage(outputnames[i - 1].c_str(), Mask);
+		cvSaveImage(outputnames[i - 1].c_str(), Mask);													//Save the Image, testing purposes
 	}
 
-	cvSubRS(Sum, 255, Sum);												//Invert black and white using cvSubRS
-	cvSaveImage("SumFinal.jpg", Sum, 0);								//Save Image
+	cvSubRS(Sum, 255, Sum);																				//Invert black and white using scalar subtraction
+	cvSaveImage("SumFinal.jpg", Sum, 0);																//Save Image
 
 
-	///-----------------------------
+	
+	
+	
+/*
+The following code repeats twice. This is not intentional, but only for testing purposes to have two sets of data to compare to. This algorithm essentially maps
+difference of frames and store what the computer considers as "motion" as black and static as white. Afterwards, the code will compile all the frame differences and
+put them together into one image. This means that any pixel that was regarded as "motion" in any of the frame differences will be considered black. However, for testing purposes,
+each image of a frame difference between adjacent images have been saved to the project as well as the accumulated frame difference image
+*/
+
 	IplImage *Sum2 = cvCreateImage(FRAME_SIZE, FRAME_DEPTH, 1);
 	cvZero(Sum2);
-	cvSet(Low, cvScalar(25, 25, 25), NULL);
-	cvSet(High, cvScalar(255, 255, 255), NULL);
 
 
 	for (int i = 1; i < FRAME_COUNT; i++) {
-		cvZero(Mask);													//Set both Mask and MaskTwo to ZERO
+		cvZero(Mask);													
 		cvZero(MaskTwo);
-		cvAbsDiff(&frames2[0], &frames2[i], OutputA);						//Frame difference the first and ith frame
-		cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_OPEN, 2);			//Apply MorphologyEX to remove noise from image
+		cvAbsDiff(&frames2[0], &frames2[i], OutputA);						
+		cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_OPEN, 2);			
 		cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_CLOSE, 2);
 
-		cvSplit(OutputA, OutputChannels[0], OutputChannels[1], OutputChannels[2], 0);					//Split Output, High and Low into three separate channels
+		cvSplit(OutputA, OutputChannels[0], OutputChannels[1], OutputChannels[2], 0);					
 		cvSplit(High, HighChannels[0], HighChannels[2], HighChannels[2], 0);
 		cvSplit(Low, LowChannels[0], LowChannels[1], LowChannels[2], 0);
 
-		cvInRange(OutputChannels[0], LowChannels[0], HighChannels[0], Mask);							//Mark sufficient changes in pixel values
-		cvOr(Mask, MaskTwo, Mask);										//CvOr to store into Mask
+		cvInRange(OutputChannels[0], LowChannels[0], HighChannels[0], Mask);							
+		cvOr(Mask, MaskTwo, Mask);										
 
 		cvInRange(OutputChannels[1], LowChannels[1], HighChannels[2], MaskTwo);
 		cvOr(Mask, MaskTwo, Mask);
 
-		cvInRange(OutputChannels[2], LowChannels[2], HighChannels[2], OutputChannels[2]);
+		cvInRange(OutputChannels[2], LowChannels[2], HighChannels[2], MaskTwo);
 		cvOr(Mask, MaskTwo, Mask);
 
-		cvOr(Sum2, Mask, Sum2);											//CvOr the result of Mask into Sum, which accumulates all i masks
+		cvOr(Sum2, Mask, Sum2);											
 
 		cvSaveImage(outputnames2[i - 1].c_str(), Mask);
 	}
 
-	cvSubRS(Sum2, 255, Sum2);												//Invert black and white using cvSubRS
+	cvSubRS(Sum2, 255, Sum2);												
 	cvSaveImage("SumFinal2.jpg", Sum2, 0);
 
+	
+	
+//-----------------------------------------------
 
-	//Output-----------------------------------------------
+//Output the two Images using the Window instantiated initially
+
 
 	cvShowImage("Output", Sum);
 	cvWaitKey(0);
 	cvShowImage("Output", Sum2);
 	cvWaitKey(0);
 
-	//Output-----------------------------------------------
+
 
 }
