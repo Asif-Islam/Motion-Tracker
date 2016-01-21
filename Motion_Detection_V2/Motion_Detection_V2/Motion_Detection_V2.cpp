@@ -1,5 +1,11 @@
-// Motion_Detection_V2.cpp : Defines the entry point for the console application.
-//
+/* MOTIION DETECTION PROGRAM
+
+This is a program in construction with the intention to not only detect motion but also recognize what type of motion is occuring.
+The motion detection is done using a basic frame differencing algorithm which thresholding on pixel values, following by an accumulation of pixels that were
+deemed as "motion"
+The type of motion is to be recognized by first "Training" the computer of the type of motion with a working data set first to deveop a model first
+
+*/
 
 #include "stdafx.h"
 #include "stdio.h"
@@ -14,7 +20,52 @@ using namespace std;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	/* The following piece of code implements the webcam of the computer. Ideally, the frame differencing algorithm will run between frames of the
+		video as it gets frames from the webcam. For now, the below code runs the webcam and also stores the first image seems into an IplImage data structure.
+		In upcoming updates, I plan to bring the frame-differencing algorithm down below at line 146 into the logic of the frame retrieval.
+	*/
 
+	//Open the camera to the default, i.e. the computer webcam
+	VideoCapture cap(0); 
+
+	//If the webcam cannot be accessed, break from the code
+	
+	if (!cap.isOpened()) {
+		return -1;
+	}
+
+
+	//Instantiate the Output Windows
+	cvNamedWindow("Output", CV_WINDOW_AUTOSIZE);
+	cvNamedWindow("PreviousFrame", CV_WINDOW_AUTOSIZE);
+
+	//Initialize frame counter
+	int video_frame_count = 0;
+
+	
+	//Infinite loop until any key is pressed, continuously retreving frames
+
+	while (1)
+	{
+		Mat frame;
+		cap >> frame;																//Using >> operator, retreive a frame from the videocapture									
+	
+		if (video_frame_count == 0) {												
+			IplImage* firstframe = cvCloneImage(&(IplImage)frame);					//clone the mat structure into an iplimage data structure
+			cvShowImage("PreviousFrame", firstframe);									//Display the first frame of the image
+		}
+
+		video_frame_count++;														//Increment the frame counter by one
+
+		imshow("Output", frame);													//Display the video output
+
+
+		if (waitKey(30) >= 0) {														//If any key is pressed in a delay of 30 milliscends, then EXIT
+			break;
+		}
+	}
+
+		
 	//Initialize some basic frame counting variables
 	
 	int frame_count = 0;
@@ -64,8 +115,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	
 	
-	//Instantiate the Output Window
-	cvNamedWindow("Output", CV_WINDOW_AUTOSIZE);
+
 
 
 	
@@ -236,5 +286,37 @@ each image of a frame difference between adjacent images have been saved to the 
 	cvWaitKey(0);
 
 
+
+//Being Clean about memory! deleting all of the pointers
+
+	cvReleaseImage(&imageA);
+	cvReleaseImage(&imageB);
+	cvReleaseImage(&imageC);
+	cvReleaseImage(&imageD);
+	cvReleaseImage(&imageE);
+
+	cvReleaseImage(&imageA2);
+	cvReleaseImage(&imageB2);
+	cvReleaseImage(&imageC2);
+	cvReleaseImage(&imageD2);
+	cvReleaseImage(&imageE2);
+
+	cvReleaseImage(&AvgImg);
+	cvReleaseImage(&Divider);
+
+	cvReleaseImage(&OutputA);
+	cvReleaseImage(&High);
+	cvReleaseImage(&Low);
+
+	for (int i = 0; i < 3; i++) {
+		cvReleaseImage(&OutputChannels[i]);
+		cvReleaseImage(&HighChannels[i]);
+		cvReleaseImage(&LowChannels[i]);
+	}
+
+	cvReleaseImage(&Mask);
+	cvReleaseImage(&MaskTwo);
+	cvReleaseImage(&Sum);
+	cvReleaseImage(&Sum2);
 
 }
