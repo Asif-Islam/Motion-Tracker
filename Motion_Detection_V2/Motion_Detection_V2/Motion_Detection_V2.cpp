@@ -28,22 +28,22 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 	
-	VideoCapture cap(0);																				//Initialize the videocapture to the default webcam															
+	VideoCapture cap(0);																	//Initialize the videocapture to the default webcam															
 
 
 	
-	if (!cap.isOpened()) {																				//If the webcam cannot be accessed, break from the code
+	if (!cap.isOpened()) {																	//If the webcam cannot be accessed, break from the code
 		return -1;
 	}
 
 
 	
-	cvNamedWindow("Output", CV_WINDOW_AUTOSIZE);														//Instantiate the Output Windows
+	cvNamedWindow("Output", CV_WINDOW_AUTOSIZE);											//Instantiate the Output Windows
 
 
 
 
-	int video_frame_count = 0;																			//Initialize frame counter
+	int video_frame_count = 0;																//Initialize frame counter
 
 
 	//TEMPORARY - Get Depth 
@@ -53,15 +53,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	
 
-	Mat frame;																							//Initialize the input frame of type Mat
-	IplImage* previous_frame;																			//Initialize IplImage to hold the previous frame
-	IplImage* current_frame;																			//Initialize IplImage to hold current frame
+	Mat frame;																				//Initialize the input frame of type Mat
+	IplImage* previous_frame;																//Initialize IplImage to hold the previous frame
+	IplImage* current_frame;																//Initialize IplImage to hold current frame
 
 
 
 	
 
-	const CvSize FRAME_SIZE = cvSize(640, 480);															//Two constants, size and depth, when defining all of our images!
+	const CvSize FRAME_SIZE = cvSize(640, 480);												//Two constants, size and depth, when defining all of our images!
 	const int FRAME_DEPTH = imageX->depth;
 
 
@@ -120,51 +120,52 @@ int _tmain(int argc, _TCHAR* argv[])
 	//Take in video input and run the frame differencing algorithm!
 
 
+
 	while (1)
 	{
 
-		cap >> frame;																						//Using >> operator, retreive a frame from the videocapture																				
-		current_frame = cvCloneImage(&(IplImage)frame);
-																											//clone the mat structure into an iplimage data structure
-		video_frame_count++;																				//Increment the frame counter by one
-		
+		cap >> frame;																			//Using >> operator, retreive a frame from the videocapture																				
+		current_frame = cvCloneImage(&(IplImage)frame);											//clone the mat structure into an iplimage data structure
+																								
+		video_frame_count++;																	//Increment the frame counter by one
+	
 
 		if (video_frame_count > 1 && video_frame_count % 2 == 0) {
 			cvZero(Sum);
-			cvZero(Mask);																					//Set both Sum, Mask and MaskTwo equal to 0
+			cvZero(Mask);																		//Set both Sum, Mask and MaskTwo equal to 0
 			cvZero(MaskTwo);
-			cvAbsDiff(current_frame, previous_frame, OutputA);												//Frame difference the first and previous frame
-			cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_OPEN, 2);											//Apply morphology algorithm that will remove general noise from image
+			cvAbsDiff(current_frame, previous_frame, OutputA);									//Frame difference the first and previous frame
+			cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_OPEN, 2);								//Apply morphology algorithm that will remove general noise from image
 			cvMorphologyEx(OutputA, OutputA, 0, 0, CV_MOP_CLOSE, 2);
 
-			cvSplit(OutputA, OutputChannels[0], OutputChannels[1], OutputChannels[2], 0);					//Split Output to three channels
-			cvSplit(High, HighChannels[0], HighChannels[1], HighChannels[2], 0);							//Split High to three channels
-			cvSplit(Low, LowChannels[0], LowChannels[1], LowChannels[2], 0);								//Split Low to three channels
+			cvSplit(OutputA, OutputChannels[0], OutputChannels[1], OutputChannels[2], 0);		//Split Output to three channels
+			cvSplit(High, HighChannels[0], HighChannels[1], HighChannels[2], 0);				//Split High to three channels
+			cvSplit(Low, LowChannels[0], LowChannels[1], LowChannels[2], 0);					//Split Low to three channels
 
-			cvInRange(OutputChannels[0], LowChannels[0], HighChannels[0], Mask);							//Mark pixels in range and store them into Mask 
-			cvOr(Mask, MaskTwo, Mask);																		//Or operator Mask, which was used last line, and MaskTwo which is zero right now
+			cvInRange(OutputChannels[0], LowChannels[0], HighChannels[0], Mask);				//Mark pixels in range and store them into Mask 
+			cvOr(Mask, MaskTwo, Mask);															//Or operator Mask, which was used last line, and MaskTwo which is zero right now
 
-			cvInRange(OutputChannels[1], LowChannels[1], HighChannels[2], MaskTwo);							//Mark pixels in range and store them into MaskTwo
-			cvOr(Mask, MaskTwo, Mask);																		//Or operator Mask and MaskTwo again to overlay the results onto Mask
+			cvInRange(OutputChannels[1], LowChannels[1], HighChannels[2], MaskTwo);				//Mark pixels in range and store them into MaskTwo
+			cvOr(Mask, MaskTwo, Mask);															//Or operator Mask and MaskTwo again to overlay the results onto Mask
 
-			cvInRange(OutputChannels[2], LowChannels[2], HighChannels[2], MaskTwo);							//Mark pixels in range store them into maskTwo
-			cvOr(Mask, MaskTwo, Mask);																		//Or operator Mask and MaskTwo again to overlap results onto Mask
+			cvInRange(OutputChannels[2], LowChannels[2], HighChannels[2], MaskTwo);				//Mark pixels in range store them into maskTwo
+			cvOr(Mask, MaskTwo, Mask);															//Or operator Mask and MaskTwo again to overlap results onto Mask
 
-			cvOr(Sum, Mask, Sum);																			//CvOr the result of Mask into Sum, which accumulates all i masks
-
-
+			cvOr(Sum, Mask, Sum);																//CvOr the result of Mask into Sum, which accumulates all i masks
 
 
-			cvSubRS(Sum, 255, Sum);																			//Invert Black and White
+
+
+			cvSubRS(Sum, 255, Sum);																//Invert Black and White
 		}
 
-		previous_frame = cvCloneImage(&(IplImage)frame);													//Store the previous frame as the current frame
+		previous_frame = cvCloneImage(&(IplImage)frame);										//Store the previous frame as the current frame
 
-		cvShowImage("Output", Sum);																			//Output the Result!
+		cvShowImage("Output", Sum);																//Output the Result!
 
 
 
-		if (waitKey(30) >= 0) {																				//If any key is pressed in a delay of 30 milliscends, then EXIT
+		if (waitKey(30) >= 0) {																	//If any key is pressed in a delay of 30 milliscends, then EXIT
 			break;
 		}
 	}
